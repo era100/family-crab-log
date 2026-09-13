@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Crab Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #16324F;
+    --navy-light: #2A4A6B;
+    --kelp: #2F6F5E;
+    --kelp-dark: #204E41;
+    --sand: #EDE3CC;
+    --paper: #FBF9F4;
+    --rope: #B98B3E;
+    --ink: #1D1D1B;
+    --muted: #6B6960;
+    --danger: #A3402B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--sand);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  header.top {
+    margin-bottom: 28px;
+  }
+  header.top h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 30px;
+    color: var(--navy);
+    margin: 0 0 4px;
+  }
+  header.top p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  nav.tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid #D9CCA8;
+    margin-bottom: 28px;
+  }
+  nav.tabs button {
+    background: none;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--muted);
+    padding: 10px 0;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  nav.tabs button.active {
+    color: var(--navy);
+    border-bottom-color: var(--kelp);
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+  .field .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    border: 1px solid #D9CCA8;
+    border-radius: 4px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--kelp);
+    outline-offset: 1px;
+    border-color: var(--kelp);
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  button.primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--kelp);
+    color: var(--paper);
+    border: none;
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  button.primary:hover { background: var(--kelp-dark); }
+  button.primary:disabled { background: #B7B3A4; cursor: not-allowed; }
+
+  button.secondary {
+    background: none;
+    border: 1px solid var(--navy);
+    color: var(--navy);
+    border-radius: 4px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .status {
+    font-size: 13px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    display: none;
+  }
+  .status.ok { display: block; background: #E1EBE4; color: var(--kelp-dark); }
+  .status.err { display: block; background: #F3E1DB; color: var(--danger); }
+
+  .divider {
+    border: none;
+    border-top: 1px dashed #C9BB94;
+    margin: 26px 0;
+  }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid #E1D5B0;
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .card .pot-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--navy);
+  }
+  .card .meta {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .card .catch {
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  .pill {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--rope);
+    color: var(--paper);
+  }
+  .pill.waiting { background: #D9CCA8; color: var(--navy); }
+
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  #setup-notice {
+    background: #F3E1DB;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 24px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="setup-notice">
+    Add your Supabase project URL and anon key at the top of the script before this works. See the two lines marked TODO.
+  </div>
+
+  <header class="top">
+    <h1>Family crab log</h1>
+    <p>Track every pot, every drop, every haul.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="drop">New drop</button>
+    <button class="tab-btn" data-tab="pickup">Log pickup</button>
+    <button class="tab-btn" data-tab="history">History</button>
+  </nav>
+
+  <!-- NEW DROP -->
+  <section class="panel active" id="panel-drop">
+    <form id="form-drop">
+      <div class="field">
+        <label for="drop-trip">Trip</label>
+        <select id="drop-trip" required></select>
+        <div class="hint">Don't see today's trip? <button type="button" class="secondary" id="btn-new-trip" style="margin-top:8px;">Start a new trip</button></div>
+      </div>
+
+      <div class="field">
+        <label for="drop-pot">Pot</label>
+        <select id="drop-pot" required></select>
+        <div class="hint">Don't see this pot? <button type="button" class="secondary" id="btn-new-pot" style="margin-top:8px;">Add a new pot</button></div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="drop-lat">Latitude</label>
+          <input type="number" step="any" id="drop-lat" placeholder="47.6062">
+        </div>
+        <div class="field">
+          <label for="drop-lng">Longitude</label>
+          <input type="number" step="any" id="drop-lng" placeholder="-122.3321">
+        </div>
+      </div>
+      <button type="button" class="secondary" id="btn-use-location">Use my current location</button>
+
+      <div class="field" style="margin-top:18px;">
+        <label for="drop-desc">Location description</label>
+        <input type="text" id="drop-desc" placeholder="Off the point, past the red buoy">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="drop-depth">Depth (ft)</label>
+          <input type="number" step="any" id="drop-depth" placeholder="35">
+        </div>
+        <div class="field">
+          <label for="drop-time">Drop time</label>
+          <input type="datetime-local" id="drop-time" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="drop-by">Dropped by</label>
+        <input type="text" id="drop-by" placeholder="Your name">
+      </div>
+
+      <button type="submit" class="primary">Log the drop</button>
+      <div class="status" id="drop-status"></div>
+    </form>
+  </section>
+
+  <!-- LOG PICKUP -->
+  <section class="panel" id="panel-pickup">
+    <form id="form-pickup">
+      <div class="field">
+        <label for="pickup-drop">Which drop are you pulling?</label>
+        <select id="pickup-drop" required></select>
+        <div class="hint">Only drops without a recorded pickup are shown here.</div>
+      </div>
+
+      <div class="field">
+        <label for="pickup-time">Pickup time</label>
+        <input type="datetime-local" id="pickup-time" required>
+      </div>
+
+      <div class="field">
+        <label for="pickup-by">Picked up by</label>
+        <input type="text" id="pickup-by" placeholder="Your name">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="pickup-legal">Legal size</label>
+          <input type="number" min="0" id="pickup-legal" value="0">
+        </div>
+        <div class="field">
+          <label for="pickup-under">Undersized</label>
+          <input type="number" min="0" id="pickup-under" value="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pickup-female">Female (released)</label>
+        <input type="number" min="0" id="pickup-female" value="0">
+      </div>
+
+      <div class="field">
+        <label for="pickup-notes">Notes</label>
+        <textarea id="pickup-notes" rows="2" placeholder="Bait gone, lots of shrimp too"></textarea>
+      </div>
+
+      <button type="submit" class="primary">Log the pickup</button>
+      <div class="status" id="pickup-status"></div>
+    </form>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="panel" id="panel-history">
+    <div id="history-list"><div class="empty">Loading history…</div></div>
+  </section>
+
+</div>
+
+<script>
+  // ---- TODO: fill these in from Supabase Settings -> Data API ----
+  const SUPABASE_URL = "https://supabase.com/dashboard/project/jvofblozfrzasxloxfsk/";
+  const SUPABASE_ANON_KEY = "sb_publishable_QxOlKT5umYd6HwUEJfZOCQ_2D79JnhF";
+  // ------------------------------------------------------------------
+
+  if (SUPABASE_URL.startsWith("YOUR_") || SUPABASE_ANON_KEY.startsWith("YOUR_")) {
+    document.getElementById('setup-notice').style.display = 'block';
+  }
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------- tabs ----------
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'pickup') loadOpenDrops();
+      if (btn.dataset.tab === 'history') loadHistory();
+    });
+  });
+
+  function nowLocal() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0,16);
+  }
+  document.getElementById('drop-time').value = nowLocal();
+  document.getElementById('pickup-time').value = nowLocal();
+
+  function showStatus(el, msg, ok) {
+    el.textContent = msg;
+    el.className = 'status ' + (ok ? 'ok' : 'err');
+  }
+
+  // ---------- load pots & trips into dropdowns ----------
+  async function loadTrips() {
+    const sel = document.getElementById('drop-trip');
+    const { data, error } = await sb.from('trips').select('*').order('trip_date', { ascending: false }).limit(20);
+    sel.innerHTML = '';
+    if (error) { sel.innerHTML = '<option>Error loading trips</option>'; return; }
+    data.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.trip_id;
+      opt.textContent = `${t.trip_date} — ${t.body_of_water || 'trip'}`;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function loadPots() {
+    const sel = document.getElementById('drop-pot');
+    const { data, error } = await sb.from('pots').select('*').order('pot_name');
+    sel.innerHTML = '';
+    if (error) { sel.innerHTML = '<option>Error loading pots</option>'; return; }
+    data.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.pot_id;
+      opt.textContent = p.pot_name + (p.owner ? ` (${p.owner})` : '');
+      sel.appendChild(opt);
+    });
+  }
+
+  document.getElementById('btn-new-trip').addEventListener('click', async () => {
+    const water = prompt("Where's this trip? (e.g. Puget Sound, Elliott Bay)");
+    if (water === null) return;
+    const date = prompt("Trip date (YYYY-MM-DD)", new Date().toISOString().slice(0,10));
+    if (!date) return;
+    const { error } = await sb.from('trips').insert({ trip_date: date, body_of_water: water });
+    if (error) { alert('Could not create trip: ' + error.message); return; }
+    await loadTrips();
+  });
+
+  document.getElementById('btn-new-pot').addEventListener('click', async () => {
+    const name = prompt("Name this pot (e.g. 'Pot 1', 'Blue buoy')");
+    if (!name) return;
+    const owner = prompt("Whose pot is it? (optional)") || null;
+    const { error } = await sb.from('pots').insert({ pot_name: name, owner });
+    if (error) { alert('Could not add pot: ' + error.message); return; }
+    await loadPots();
+  });
+
+  document.getElementById('btn-use-location').addEventListener('click', () => {
+    if (!navigator.geolocation) { alert('Location not supported on this device.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        document.getElementById('drop-lat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('drop-lng').value = pos.coords.longitude.toFixed(6);
+      },
+      () => alert('Could not get your location.')
+    );
+  });
+
+  // ---------- submit a drop ----------
+  document.getElementById('form-drop').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('drop-status');
+    const payload = {
+      trip_id: document.getElementById('drop-trip').value,
+      pot_id: document.getElementById('drop-pot').value,
+      latitude: document.getElementById('drop-lat').value || null,
+      longitude: document.getElementById('drop-lng').value || null,
+      location_description: document.getElementById('drop-desc').value || null,
+      depth_ft: document.getElementById('drop-depth').value || null,
+      drop_time: document.getElementById('drop-time').value,
+      dropped_by: document.getElementById('drop-by').value || null,
+    };
+    const { error } = await sb.from('drops').insert(payload);
+    if (error) { showStatus(statusEl, 'Error: ' + error.message, false); return; }
+    showStatus(statusEl, 'Drop logged!', true);
+    document.getElementById('form-drop').reset();
+    document.getElementById('drop-time').value = nowLocal();
+  });
+
+  // ---------- load open drops for pickup ----------
+  async function loadOpenDrops() {
+    const sel = document.getElementById('pickup-drop');
+    sel.innerHTML = '<option>Loading…</option>';
+    const { data: drops, error } = await sb
+      .from('drops')
+      .select('drop_id, drop_time, location_description, pots(pot_name), trips(trip_date)')
+      .order('drop_time', { ascending: false })
+      .limit(50);
+    if (error) { sel.innerHTML = '<option>Error loading drops</option>'; return; }
+
+    const { data: pickups } = await sb.from('pickups').select('drop_id');
+    const pickedUp = new Set((pickups || []).map(p => p.drop_id));
+    const open = drops.filter(d => !pickedUp.has(d.drop_id));
+
+    sel.innerHTML = '';
+    if (open.length === 0) {
+      sel.innerHTML = '<option value="">No open drops</option>';
+      return;
+    }
+    open.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.drop_id;
+      const potName = d.pots ? d.pots.pot_name : 'Pot';
+      const when = new Date(d.drop_time).toLocaleString();
+      opt.textContent = `${potName} — ${when}${d.location_description ? ' — ' + d.location_description : ''}`;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ---------- submit a pickup ----------
+  document.getElementById('form-pickup').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('pickup-status');
+    const dropId = document.getElementById('pickup-drop').value;
+    if (!dropId) { showStatus(statusEl, 'No drop selected.', false); return; }
+    const payload = {
+      drop_id: dropId,
+      pickup_time: document.getElementById('pickup-time').value,
+      picked_up_by: document.getElementById('pickup-by').value || null,
+      legal_count: document.getElementById('pickup-legal').value || 0,
+      undersized_count: document.getElementById('pickup-under').value || 0,
+      female_count: document.getElementById('pickup-female').value || 0,
+      num_crabs: (Number(document.getElementById('pickup-legal').value)||0) + (Number(document.getElementById('pickup-under').value)||0) + (Number(document.getElementById('pickup-female').value)||0),
+      notes: document.getElementById('pickup-notes').value || null,
+    };
+    const { error } = await sb.from('pickups').insert(payload);
+    if (error) { showStatus(statusEl, 'Error: ' + error.message, false); return; }
+    showStatus(statusEl, 'Pickup logged!', true);
+    document.getElementById('form-pickup').reset();
+    document.getElementById('pickup-time').value = nowLocal();
+    loadOpenDrops();
+  });
+
+  // ---------- history ----------
+  async function loadHistory() {
+    const el = document.getElementById('history-list');
+    el.innerHTML = '<div class="empty">Loading…</div>';
+    const { data, error } = await sb
+      .from('drops')
+      .select('drop_id, drop_time, location_description, depth_ft, dropped_by, pots(pot_name), trips(trip_date, body_of_water), pickups(pickup_time, picked_up_by, legal_count, undersized_count, female_count, notes)')
+      .order('drop_time', { ascending: false })
+      .limit(30);
+    if (error) { el.innerHTML = '<div class="empty">Error loading history</div>'; return; }
+    if (!data.length) { el.innerHTML = '<div class="empty">No drops logged yet</div>'; return; }
+
+    el.innerHTML = data.map(d => {
+      const pot = d.pots ? d.pots.pot_name : 'Pot';
+      const trip = d.trips ? `${d.trips.trip_date}${d.trips.body_of_water ? ' · ' + d.trips.body_of_water : ''}` : '';
+      const when = new Date(d.drop_time).toLocaleString();
+      const pickup = d.pickups && d.pickups[0];
+      const pill = pickup
+        ? `<span class="pill">Legal: ${pickup.legal_count||0} · Under: ${pickup.undersized_count||0} · F: ${pickup.female_count||0}</span>`
+        : `<span class="pill waiting">Still out</span>`;
+      return `
+        <div class="card">
+          <div class="pot-name">${pot}</div>
+          <div class="meta">${trip} — dropped ${when}${d.depth_ft ? ' at ' + d.depth_ft + 'ft' : ''}${d.location_description ? ' — ' + d.location_description : ''}</div>
+          <div class="catch">${pill}</div>
+          ${pickup && pickup.notes ? `<div class="meta" style="margin-top:6px;">"${pickup.notes}"</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  // ---------- init ----------
+  loadTrips();
+  loadPots();
+</script>
+</body>
+</html>
